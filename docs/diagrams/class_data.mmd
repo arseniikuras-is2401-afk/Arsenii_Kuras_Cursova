@@ -1,0 +1,200 @@
+classDiagram
+    direction TB
+
+    class Database {
+        -Path _path
+        -Connection|None _connection
+        -bool _unit_active
+        +connection() Connection
+        +close()
+        +begin_unit()
+        +end_unit()
+        -_open() Connection
+    }
+
+    class SchemaManager {
+        +int SCHEMA_VERSION$
+        +needs_creation(connection) bool
+        +create(connection)
+    }
+
+    class DemoSeeder {
+        -Random _rng
+        -datetime _now
+        +seed(uow)
+        -_seed_catalog(uow)
+        -_seed_clients_and_cars(uow)
+        -_seed_orders(uow)
+        -_advance(uow, order, final)
+    }
+
+    class open_database {
+        <<function>>
+        open_database(path, with_demo_data) Database
+    }
+
+    class UnitOfWork {
+        <<context manager>>
+        -Database _database
+        -Connection _connection
+        +ClientDao clients
+        +CarDao cars
+        +CategoryDao categories
+        +EmployeeDao employees
+        +WorkTypeDao work_types
+        +PartDao parts
+        +OrderDao orders
+        +ReportDao reports
+        +＿＿enter＿＿() UnitOfWork
+        +＿＿exit＿＿(exc_type, exc, tb) bool
+    }
+
+    class ListQuery {
+        <<dataclass>>
+        +str search_text
+        +list~Criterion~ criteria
+        +list~SortKey~ sort_keys
+    }
+
+    class SortKey {
+        <<dataclass>>
+        +str field
+        +bool descending
+    }
+
+    class Criterion {
+        <<abstract>>
+        +str field
+        +to_sql(fields)* tuple
+    }
+    class Equals {
+        +object value
+        +to_sql(fields) tuple
+    }
+    class Between {
+        +object low
+        +object high
+        +to_sql(fields) tuple
+    }
+    class IsTrue {
+        +to_sql(fields) tuple
+    }
+
+    class TableDao {
+        <<abstract>>
+        +str TABLE$
+        +str PK$
+        +str LIST_SOURCE$
+        +dict FIELDS$
+        +tuple SEARCH_FIELDS$
+        +tuple DEFAULT_SORT$
+        +tuple USAGES$
+        #Connection _connection
+        +get(record_id) object
+        +get_row(record_id) Row
+        +find(query) list~Row~
+        +count(query) int
+        +find_duplicate(column, value, exclude_id) Row|None
+        +usages(record_id) list~str~
+        +delete(record_id)
+        +build_select(query, count_only) tuple
+        +order_by(sort_keys) str
+        #_insert(values) int
+        #_update(record_id, values)
+        #_to_entity(row)* object
+    }
+
+    class WithCategory {
+        <<abstract>>
+        #CategoryDao _categories
+        #_category(category_id) RepairCategory
+    }
+
+    class ClientDao {
+        +insert(client) int
+        +update(client)
+        +paid_orders_count(client_id) int
+    }
+    class CarDao {
+        -ClientDao _clients
+        +insert(car) int
+        +update(car)
+        +update_mileage(car)
+        +open_order_id(car_id) int|None
+        +makes() list~str~
+    }
+    class CategoryDao {
+        +insert(category) int
+        +update(category)
+        +all() list~RepairCategory~
+    }
+    class EmployeeDao {
+        +insert(employee) int
+        +update(employee)
+        +open_orders_count(employee_id) int
+    }
+    class WorkTypeDao {
+        +insert(work_type) int
+        +update(work_type)
+    }
+    class PartDao {
+        +insert(part) int
+        +update(part)
+        +update_stock(part)
+        +find_by_article(article) Part|None
+    }
+    class OrderDao {
+        +insert(order) int
+        +update_header(order)
+        +update_status(order)
+        +log_status(order_id, old, new, moment, comment)
+        +status_history(order_id) list~Row~
+        +insert_line(order, line) int
+        +update_line_quantity(line)
+        +delete_line(line)
+        +save_line(order, line)
+    }
+    class ReportDao {
+        +dashboard(today) dict
+        +overdue_orders(today, limit) list
+        +low_stock_parts(limit) list
+        +revenue_by_month(start, end, employee_id) list
+        +top_work_types(start, end, limit, employee_id) list
+        +mechanic_load(start, end) list
+        +average_repair_days(start, end) float|None
+    }
+
+    Criterion <|-- Equals
+    Criterion <|-- Between
+    Criterion <|-- IsTrue
+    TableDao <|-- ClientDao
+    TableDao <|-- CarDao
+    TableDao <|-- CategoryDao
+    TableDao <|-- WithCategory
+    TableDao <|-- OrderDao
+    WithCategory <|-- EmployeeDao
+    WithCategory <|-- WorkTypeDao
+    WithCategory <|-- PartDao
+
+    ListQuery *-- "0..*" Criterion
+    ListQuery *-- "0..2" SortKey
+    UnitOfWork *-- ClientDao
+    UnitOfWork *-- CarDao
+    UnitOfWork *-- CategoryDao
+    UnitOfWork *-- EmployeeDao
+    UnitOfWork *-- WorkTypeDao
+    UnitOfWork *-- PartDao
+    UnitOfWork *-- OrderDao
+    UnitOfWork *-- ReportDao
+    UnitOfWork --> Database : з'єднання й захист від вкладення
+    CarDao o-- ClientDao : власник
+    WithCategory o-- CategoryDao
+    OrderDao o-- CarDao
+    OrderDao o-- EmployeeDao
+    OrderDao o-- WorkTypeDao
+    OrderDao o-- PartDao
+    TableDao ..> ListQuery : виконує
+    open_database ..> SchemaManager
+    open_database ..> DemoSeeder
+    open_database ..> UnitOfWork
+    DemoSeeder ..> UnitOfWork

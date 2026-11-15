@@ -1,0 +1,242 @@
+classDiagram
+    direction TB
+
+    class MainWindow {
+        <<QMainWindow>>
+        -AppContext _app
+        -QtEventBridge _bridge
+        -dict _order_windows
+        +NavigationBar navigation
+        +QStackedWidget stack
+        +dict pages
+        +show_page(key)
+        +new_order(car_id)
+        +open_order(order_id)
+        +show_overdue_orders()
+        +show_low_stock()
+        +show_toast(text)
+    }
+
+    class NavigationBar {
+        <<QFrame>>
+        +dict buttons
+        +select(key)
+    }
+
+    class QtEventBridge {
+        <<QObject>>
+        +pyqtSignal changed
+        -_on_hub_event(topics)
+        +detach()
+    }
+
+    class Page {
+        <<QWidget>>
+        +str TITLE$
+        +frozenset TOPICS$
+        -bool _stale
+        +refresh()*
+        +safe_refresh()
+        +on_topics_changed(topics)
+        +showEvent(event)
+        +load(panel, finder)
+        +export(panel, source, file_stem)
+        +delete_record(what, name, action)
+    }
+    class DashboardPage
+    class OrdersPage
+    class ClientsPage
+    class CarsPage
+    class StaffPage
+    class CatalogPage
+    class StockPage
+    class StatisticsPage
+
+    class ListPanel {
+        <<QWidget>>
+        +pyqtSignal query_changed
+        +pyqtSignal selection_changed
+        +pyqtSignal activated
+        +SearchBox search
+        +FilterBar filter_bar
+        +SortBar sort_bar
+        +DataTable table
+        +RecordTableModel model
+        +current_query() ListQuery
+        +set_rows(rows)
+        +selected_id() int
+        +export_columns() list
+        +reset()
+    }
+
+    class DataTable {
+        <<QTableView>>
+        +pyqtSignal delete_pressed
+    }
+
+    class RecordTableModel {
+        <<QAbstractTableModel>>
+        -list~ColumnSpec~ _columns
+        -list _rows
+        +set_rows(rows)
+        +id_at(row) int
+        +data(index, role) object
+    }
+
+    class ColumnSpec {
+        <<dataclass>>
+        +str key
+        +str title
+        +ColumnKind kind
+        +int width
+        +str sort_field
+        +bool stretch
+        +display(row) str
+        +export_column() ExportColumn
+    }
+
+    class StatusDelegate {
+        <<QStyledItemDelegate>>
+        +paint(painter, option, index)
+    }
+
+    class FilterControl {
+        <<QWidget>>
+        +pyqtSignal changed
+        +criterion()* Criterion
+        +reset()*
+    }
+    class ChoiceFilter
+    class PeriodFilter
+    class NumberRangeFilter
+    class FlagFilter
+    class FilterBar {
+        +criteria() list
+        +reset()
+    }
+    class SortBar {
+        +sort_keys() list~SortKey~
+        +set_primary(field)
+    }
+
+    class FieldSpec {
+        +str name
+        +str label
+        +bool required
+        +create_widget()* QWidget
+        +read(widget)* object
+        +write(widget, value)*
+        +is_filled(widget) bool
+    }
+    class TextField
+    class PhoneField
+    class MultilineField
+    class IntField
+    class DecimalField
+    class MoneyField
+    class DateField
+    class ChoiceField
+    class CheckField
+
+    class FormDialog {
+        <<QDialog>>
+        -list~FieldSpec~ _specs
+        -dict _widgets
+        +fields()* list
+        +submit(values)*
+        +values() dict
+        +show_error(error)
+        +accept()
+    }
+    class ClientForm
+    class CarForm
+    class EmployeeForm
+    class CategoryForm
+    class WorkTypeForm
+    class PartForm
+    class ReceivePartsDialog
+    class NewOrderForm
+    class OrderHeaderForm
+    class AddWorkDialog
+    class AddPartDialog
+    class CommentDialog
+
+    class OrderWindow {
+        <<QDialog>>
+        -int _order_id
+        -Order _order
+        +reload()
+        -_build_status_buttons(order)
+        -_change_status(status)
+    }
+
+    class ChartCanvas {
+        <<FigureCanvasQTAgg>>
+        +plot_columns(points, title, unit)
+        +plot_bars(points, title, unit)
+    }
+    class MetricCard {
+        <<QFrame>>
+        +set_value(text, hint, alert)
+    }
+    class AboutDialog {
+        <<QDialog>>
+    }
+
+    Page <|-- DashboardPage
+    Page <|-- OrdersPage
+    Page <|-- ClientsPage
+    Page <|-- CarsPage
+    Page <|-- StaffPage
+    Page <|-- CatalogPage
+    Page <|-- StockPage
+    Page <|-- StatisticsPage
+    FilterControl <|-- ChoiceFilter
+    FilterControl <|-- PeriodFilter
+    FilterControl <|-- NumberRangeFilter
+    FilterControl <|-- FlagFilter
+    FieldSpec <|-- TextField
+    TextField <|-- PhoneField
+    TextField <|-- MoneyField
+    FieldSpec <|-- MultilineField
+    FieldSpec <|-- IntField
+    FieldSpec <|-- DecimalField
+    FieldSpec <|-- DateField
+    FieldSpec <|-- ChoiceField
+    FieldSpec <|-- CheckField
+    FormDialog <|-- ClientForm
+    FormDialog <|-- CarForm
+    FormDialog <|-- EmployeeForm
+    FormDialog <|-- CategoryForm
+    FormDialog <|-- WorkTypeForm
+    FormDialog <|-- PartForm
+    FormDialog <|-- ReceivePartsDialog
+    FormDialog <|-- NewOrderForm
+    FormDialog <|-- OrderHeaderForm
+    FormDialog <|-- AddWorkDialog
+    FormDialog <|-- AddPartDialog
+    FormDialog <|-- CommentDialog
+
+    MainWindow *-- NavigationBar
+    MainWindow *-- QtEventBridge
+    MainWindow *-- "8" Page
+    MainWindow o-- "0..*" OrderWindow
+    MainWindow ..> AboutDialog
+    ListPanel *-- DataTable
+    ListPanel *-- RecordTableModel
+    ListPanel *-- FilterBar
+    ListPanel *-- SortBar
+    FilterBar *-- "0..*" FilterControl
+    RecordTableModel o-- "1..*" ColumnSpec
+    DataTable *-- StatusDelegate
+    FormDialog *-- "1..*" FieldSpec
+    DashboardPage *-- "6" MetricCard
+    StatisticsPage *-- "3" ChartCanvas
+    OrdersPage *-- ListPanel
+    ClientsPage *-- ListPanel
+    CarsPage *-- ListPanel
+    StaffPage *-- ListPanel
+    CatalogPage *-- "2" ListPanel
+    StockPage *-- ListPanel
+    QtEventBridge ..> Page : changed(topics)
+    QtEventBridge ..> OrderWindow : changed(topics)

@@ -1,0 +1,200 @@
+classDiagram
+    direction TB
+
+    class Topic {
+        <<enumeration>>
+        CLIENTS
+        CARS
+        STAFF
+        CATALOG
+        STOCK
+        ORDERS
+    }
+
+    class EventHub {
+        -list _subscriptions
+        +subscribe(topics, listener)
+        +unsubscribe(listener)
+        +publish(*topics)
+    }
+
+    class AppService {
+        #Database _database
+        #EventHub _events
+        #Clock _clock
+        #_unit() UnitOfWork
+        #_now() datetime
+        #_today() date
+        #_notify(*topics)
+        #_ensure_unique(dao, column, value, exclude_id, message)$
+        #_ensure_not_used(dao, record_id, what, advice)$
+        #_run_save(dao_name, entity, id_attribute, checks, topics) int
+    }
+
+    class CustomerService {
+        +find_clients(query) list
+        +get_client(client_id) Client
+        +all_clients() list~Client~
+        +save_client(client) int
+        +delete_client(client_id)
+        +find_cars(query) list
+        +get_car(car_id) Car
+        +cars_of(client_id) list~Car~
+        +car_makes() list~str~
+        +save_car(car) int
+        +delete_car(car_id)
+        +car_history(car_id) list
+    }
+
+    class StaffService {
+        +find(query) list
+        +get(employee_id) Employee
+        +save(employee) int
+        +set_active(employee_id, active)
+        +delete(employee_id)
+        +available_mechanics(keep_id) list
+    }
+
+    class CatalogService {
+        +categories() list~RepairCategory~
+        +find_categories(query) list
+        +save_category(category) int
+        +delete_category(category_id)
+        +find_work_types(query) list
+        +get_work_type(work_type_id) WorkType
+        +active_work_types() list~WorkType~
+        +save_work_type(work_type) int
+        +delete_work_type(work_type_id)
+        +find_parts(query) list
+        +get_part(part_id) Part
+        +parts_in_stock() list~Part~
+        +save_part(part) int
+        +receive_parts(part_id, quantity) Part
+        +delete_part(part_id)
+    }
+
+    class OrderService {
+        +find(query) list
+        +get(order_id) Order
+        +history(order_id) list
+        +loyalty_percent(client_id) int
+        +create(car_id, employee_id, complaint, due_date, mileage, discount) int
+        +update_header(order_id, employee_id, due_date, complaint, discount)
+        +add_work(order_id, work_type_id, quantity) OrderLine
+        +add_part(order_id, part_id, quantity) PartLine
+        +remove_line(order_id, kind, line_id)
+        +change_status(order_id, new_status, comment) Order
+        +delete(order_id)
+    }
+
+    class ReportService {
+        +dashboard() DashboardSummary
+        +revenue_by_month(start, end, employee_id) list~ChartPoint~
+        +top_work_types(start, end, employee_id, limit) list~ChartPoint~
+        +mechanic_load(start, end) list~ChartPoint~
+        +average_repair_days(start, end) float|None
+    }
+
+    class DashboardSummary {
+        <<frozen dataclass>>
+        +int open_orders
+        +int overdue
+        +int awaiting_payment
+        +Money revenue_month
+        +Money average_check
+        +int low_stock
+        +list overdue_orders
+        +list low_stock_parts
+    }
+
+    class ChartPoint {
+        <<frozen dataclass>>
+        +str label
+        +float value
+    }
+
+    class ExportService {
+        +tuple SOURCES$
+        +export(source, query, columns, path) int
+    }
+
+    class ExportColumn {
+        <<frozen dataclass>>
+        +str key
+        +str title
+        +ColumnKind kind
+        +csv_value(row) str
+        +json_value(row) object
+    }
+
+    class Exporter {
+        <<abstract>>
+        +str EXTENSION$
+        +str DESCRIPTION$
+        +export(columns, rows, path)
+        #_write(columns, rows, path)*
+    }
+    class CsvExporter {
+        #_write(columns, rows, path)
+    }
+    class JsonExporter {
+        #_write(columns, rows, path)
+    }
+
+    class PartsReceiptImporter {
+        +import_file(path) ImportReport
+        -_read(path) list
+        -_parse(records, report) list~ReceiptLine~
+        -_apply(uow, line, category, report)$
+    }
+
+    class ImportReport {
+        <<dataclass>>
+        +int added
+        +int restocked
+        +list errors
+        +list warnings
+        +imported: int
+        +summary() str
+    }
+
+    class AppContext {
+        <<composition root>>
+        +Database database
+        +EventHub events
+        +CustomerService customers
+        +StaffService staff
+        +CatalogService catalog
+        +OrderService orders
+        +ReportService reports
+        +ExportService exports
+        +PartsReceiptImporter parts_import
+        +open(path)$ AppContext
+        +close()
+    }
+
+    AppService <|-- CustomerService
+    AppService <|-- StaffService
+    AppService <|-- CatalogService
+    AppService <|-- OrderService
+    AppService <|-- ReportService
+    AppService <|-- ExportService
+    AppService <|-- PartsReceiptImporter
+    Exporter <|-- CsvExporter
+    Exporter <|-- JsonExporter
+
+    AppService o-- EventHub
+    EventHub ..> Topic
+    ReportService ..> DashboardSummary
+    ReportService ..> ChartPoint
+    ExportService ..> Exporter : exporter_for(path)
+    Exporter ..> ExportColumn
+    PartsReceiptImporter ..> ImportReport
+    AppContext *-- EventHub
+    AppContext *-- CustomerService
+    AppContext *-- StaffService
+    AppContext *-- CatalogService
+    AppContext *-- OrderService
+    AppContext *-- ReportService
+    AppContext *-- ExportService
+    AppContext *-- PartsReceiptImporter

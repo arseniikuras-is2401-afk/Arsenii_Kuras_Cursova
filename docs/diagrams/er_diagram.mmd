@@ -1,0 +1,107 @@
+erDiagram
+    CLIENTS ||--o{ CARS : "володіє"
+    CARS ||--o{ ORDERS : "ремонтується за"
+    EMPLOYEES ||--o{ ORDERS : "відповідає за"
+    ORDERS ||--|{ ORDER_STATUS_LOG : "історія статусів"
+    ORDERS ||--o{ ORDER_WORKS : "містить роботи"
+    ORDERS ||--o{ ORDER_PARTS : "містить запчастини"
+    WORK_TYPES ||--o{ ORDER_WORKS : "виконується в"
+    PARTS ||--o{ ORDER_PARTS : "списується в"
+    REPAIR_CATEGORIES ||--o{ WORK_TYPES : "групує роботи"
+    REPAIR_CATEGORIES ||--o{ PARTS : "групує запчастини"
+    REPAIR_CATEGORIES |o--o{ EMPLOYEES : "спеціалізація"
+
+    CLIENTS {
+        INTEGER client_id PK
+        TEXT last_name "NOT NULL"
+        TEXT first_name "NOT NULL"
+        TEXT phone "NOT NULL UNIQUE"
+        TEXT email "UNIQUE NULL"
+        TEXT registered_on "NOT NULL"
+        TEXT note
+    }
+
+    CARS {
+        INTEGER car_id PK
+        INTEGER client_id FK "RESTRICT"
+        TEXT make "NOT NULL"
+        TEXT model "NOT NULL"
+        INTEGER production_year "1950..2100"
+        TEXT plate_number "NOT NULL UNIQUE"
+        TEXT vin "UNIQUE NULL, 17"
+        INTEGER mileage_km ">= 0"
+    }
+
+    EMPLOYEES {
+        INTEGER employee_id PK
+        TEXT last_name "NOT NULL"
+        TEXT first_name "NOT NULL"
+        TEXT phone "NOT NULL UNIQUE"
+        INTEGER category_id FK "SET NULL"
+        TEXT hired_on "NOT NULL"
+        INTEGER is_active "0 або 1"
+    }
+
+    REPAIR_CATEGORIES {
+        INTEGER category_id PK
+        TEXT name "NOT NULL UNIQUE"
+    }
+
+    WORK_TYPES {
+        INTEGER work_type_id PK
+        INTEGER category_id FK "RESTRICT"
+        TEXT name "NOT NULL UNIQUE"
+        INTEGER price_kop ">= 0"
+        REAL norm_hours "> 0"
+        INTEGER is_active "0 або 1"
+    }
+
+    PARTS {
+        INTEGER part_id PK
+        INTEGER category_id FK "RESTRICT"
+        TEXT article "NOT NULL UNIQUE"
+        TEXT name "NOT NULL"
+        INTEGER price_kop ">= 0"
+        INTEGER stock_qty ">= 0"
+        INTEGER min_qty ">= 0"
+    }
+
+    ORDERS {
+        INTEGER order_id PK
+        INTEGER car_id FK "RESTRICT"
+        INTEGER employee_id FK "RESTRICT"
+        TEXT accepted_at "NOT NULL"
+        TEXT due_date ">= accepted_at"
+        TEXT completed_at "NULL"
+        TEXT paid_at "NULL"
+        TEXT complaint "NOT NULL"
+        INTEGER intake_mileage_km ">= 0"
+        INTEGER manual_discount_pct "0..30"
+        INTEGER loyalty_discount_pct "0 або 5"
+        TEXT status "CHECK IN (...)"
+    }
+
+    ORDER_WORKS {
+        INTEGER order_work_id PK
+        INTEGER order_id FK "CASCADE"
+        INTEGER work_type_id FK "RESTRICT"
+        INTEGER quantity "> 0"
+        INTEGER unit_price_kop ">= 0"
+    }
+
+    ORDER_PARTS {
+        INTEGER order_part_id PK
+        INTEGER order_id FK "CASCADE"
+        INTEGER part_id FK "RESTRICT"
+        INTEGER quantity "> 0"
+        INTEGER unit_price_kop ">= 0"
+    }
+
+    ORDER_STATUS_LOG {
+        INTEGER log_id PK
+        INTEGER order_id FK "CASCADE"
+        TEXT old_status "NULL"
+        TEXT new_status "NOT NULL"
+        TEXT changed_at "NOT NULL"
+        TEXT comment
+    }

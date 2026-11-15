@@ -1,0 +1,42 @@
+flowchart LR
+    Start([▶ main.py]) --> MW[🏠 Головне вікно<br/>бічна навігація]
+
+    MW --> Dash[📊 Головна<br/>показники, прострочені,<br/>мало на складі]
+    MW --> Orders[🧾 Замовлення]
+    MW --> Clients[👤 Клієнти]
+    MW --> Cars[🚗 Автомобілі]
+    MW --> Staff[🔧 Механіки]
+    MW --> Catalog[📋 Прайс робіт]
+    MW --> Stock[📦 Склад]
+    MW --> Stats[📈 Статистика]
+
+    Dash -->|клік по простроченому| OW
+    Orders -->|«Нове замовлення»| NOF[Форма нового замовлення<br/>клієнт → авто → механік]
+    NOF -->|«Створити»| OW
+    Orders -->|подвійний клік / «Відкрити»| OW[🧾 Вікно замовлення<br/>роботи, запчастини,<br/>сума, статус, історія]
+    OW --> ALW[Додати роботу]
+    OW --> ALP[Додати запчастину]
+    OW --> ST{Зміна статусу}
+    ST -->|підтвердження| OW
+
+    Clients --> CF[Форма клієнта]
+    Clients -->|авто вибраного клієнта| CarF[Форма авто]
+    Clients -->|«Нове замовлення» для авто| NOF
+    Cars --> CarF
+    Cars -->|історія ремонтів, подвійний клік| OW
+    Staff --> EF[Форма механіка]
+    Catalog --> WF[Форма роботи]
+    Stock --> PF[Форма запчастини]
+    Stock --> RCV[Прихід запчастин]
+    Stock --> IMP[Імпорт CSV<br/>звіт імпорту]
+
+    Orders & Clients & Cars & Staff & Catalog & Stock -.->|«Експорт»| EXP[CSV / JSON<br/>поточна вибірка]
+
+    classDef main fill:#FFE0B2,stroke:#E65100,stroke-width:2px,color:#3E2723
+    classDef page fill:#E3F2FD,stroke:#1565C0,stroke-width:1px,color:#0D47A1
+    classDef dialog fill:#F1F8E9,stroke:#558B2F,stroke-width:1px,color:#1B5E20
+    classDef key fill:#FFCDD2,stroke:#C62828,stroke-width:2px,color:#B71C1C
+    class MW main
+    class Dash,Orders,Clients,Cars,Staff,Catalog,Stock,Stats page
+    class NOF,ALW,ALP,CF,CarF,EF,WF,PF,RCV,IMP,EXP dialog
+    class OW,ST key

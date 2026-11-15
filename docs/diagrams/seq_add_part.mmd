@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    actor U as Майстер
+    participant W as OrderWindow
+    participant D as AddLineDialog
+    participant S as OrderService
+    participant UoW as UnitOfWork
+    participant O as Order
+    participant P as Part
+    participant DB as SQLite
+    participant H as EventHub
+
+    U->>W: «Додати запчастину»
+    W->>D: exec_() зі списком запчастин (назва, артикул, залишок)
+    U->>D: обирає запчастину, вводить кількість
+    D->>D: перевірка полів (кількість > 0)
+    D->>S: add_part(order_id, part_id, qty)
+    S->>UoW: with uow_factory() as uow
+    UoW->>DB: BEGIN (неявно, autocommit=False)
+    S->>UoW: orders.get(order_id), parts.get(part_id)
+    UoW->>DB: SELECT ...
+    S->>O: add_part(part, qty)
+    O->>O: state.lines_editable?
+    alt статус не дозволяє змін
+        O-->>S: BusinessRuleError
+    else кількість більша за залишок
+        O->>P: take(qty)
+        P-->>S: InsufficientStockError
+    else усе гаразд
+        O->>P: take(qty)
+        P->>P: stock_qty -= qty
+        O-->>S: новий PartLine (ціна зафіксована)
+        S->>UoW: orders.save_line(), parts.update_stock(part)
+        UoW->>DB: INSERT order_parts / UPDATE parts
+    end
+    alt помилка на будь-якому кроці
+        UoW->>DB: ROLLBACK
+        S-->>D: виняток із поясненням
+        D-->>U: повідомлення, введені дані залишаються
+    else успіх
+        UoW->>DB: COMMIT
+        S->>H: publish(ORDERS, STOCK)
+        H-->>W: changed → reload()
+        Note over H: сторінки «Склад» і «Головна»<br/>позначаються застарілими
+        D-->>U: діалог закривається, сума замовлення оновлена
+    end

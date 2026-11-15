@@ -1,0 +1,247 @@
+classDiagram
+    direction TB
+
+    class Money {
+        <<frozen dataclass>>
+        +int kop
+        +from_text(text, field) Money$
+        +from_uah(value) Money$
+        +operator +(other) Money
+        +operator -(other) Money
+        +operator *(qty) Money
+        +percent(pct) Money
+        +to_uah() Decimal
+        +to_text(with_currency) str
+    }
+
+    class Person {
+        <<abstract>>
+        #str _last_name
+        #str _first_name
+        #str _phone
+        +last_name: str
+        +first_name: str
+        +phone: str
+        +full_name() str
+        +short_name() str
+        +display_name()* str
+    }
+
+    class Client {
+        +int client_id
+        +email: str|None
+        +registered_on: date
+        +note: str|None
+        +display_name() str
+    }
+
+    class Employee {
+        +int employee_id
+        +RepairCategory|None specialization
+        +hired_on: date
+        +bool is_active
+        +display_name() str
+    }
+
+    class RepairCategory {
+        +int category_id
+        +name: str
+    }
+
+    class Car {
+        +int car_id
+        +Client owner
+        +make: str
+        +model: str
+        +production_year: int
+        +plate_number: str
+        +vin: str|None
+        -int _mileage_km
+        +mileage_km: int
+        +register_mileage(km)
+        +title() str
+        +display_name() str
+    }
+
+    class WorkType {
+        +int work_type_id
+        +RepairCategory category
+        +name: str
+        +price: Money
+        +norm_hours: float
+        +bool is_active
+    }
+
+    class Part {
+        +int part_id
+        +RepairCategory category
+        +article: str
+        +name: str
+        +price: Money
+        +min_qty: int
+        -int _stock_qty
+        +stock_qty: int
+        +is_low_stock() bool
+        +take(qty)
+        +put_back(qty)
+        +receive(qty)
+        +display_name() str
+    }
+
+    class LineKind {
+        <<enumeration>>
+        WORK
+        PART
+    }
+
+    class OrderLine {
+        <<abstract>>
+        +int MAX_QUANTITY$
+        +int|None line_id
+        +quantity: int
+        +Money unit_price
+        +total() Money
+        +kind()* LineKind
+        +title()* str
+        +labor_hours()* float
+    }
+
+    class WorkLine {
+        +WorkType work_type
+        +kind() LineKind
+        +title() str
+        +labor_hours() float
+    }
+
+    class PartLine {
+        +Part part
+        +kind() LineKind
+        +title() str
+        +labor_hours() float
+        +release_stock()
+    }
+
+    class DiscountPolicy {
+        <<abstract>>
+        +percent_for(kind)* int
+        +describe()* str
+    }
+    class NoDiscount
+    class ManualDiscount {
+        +int percent
+    }
+    class LoyaltyDiscount {
+        +int percent
+    }
+    class BestOfDiscount {
+        +list~DiscountPolicy~ policies
+        +percent_for(kind) int
+    }
+
+    class OrderStatus {
+        <<enumeration>>
+        NEW
+        IN_PROGRESS
+        COMPLETED
+        PAID
+        CANCELLED
+        +state: OrderState
+        +title: str
+    }
+
+    class OrderState {
+        <<abstract>>
+        +OrderStatus status
+        +str title
+        +bool lines_editable
+        +bool is_open
+        +bool can_delete
+        +allowed_next()* frozenset
+        +can_switch_to(status) bool
+        +check_enter(order)
+        +on_enter(order, moment)
+        +locked_reason() str
+    }
+    class NewState
+    class InProgressState {
+        +check_enter(order)
+        +on_enter(order, moment)
+    }
+    class CompletedState {
+        +check_enter(order)
+        +on_enter(order, moment)
+    }
+    class PaidState {
+        +on_enter(order, moment)
+    }
+    class CancelledState {
+        +on_enter(order, moment)
+    }
+
+    class Order {
+        +int|None order_id
+        +Car car
+        +Employee mechanic
+        +accepted_at: datetime
+        +due_date: date
+        +complaint: str
+        +intake_mileage_km: int
+        +manual_discount_pct: int
+        +loyalty_discount_pct: int
+        +completed_at: datetime|None
+        +paid_at: datetime|None
+        -OrderState _state
+        -list~OrderLine~ _lines
+        +open_new(car, mechanic, ...)$ Order
+        +number: str
+        +status: OrderStatus
+        +change_status(new_status, moment)
+        +is_overdue(today) bool
+        +add_work(work_type, qty) WorkLine
+        +add_part(part, qty) PartLine
+        +remove_line(line)
+        +restore_line(line)
+        +lines() tuple
+        +work_lines() tuple
+        +part_lines() tuple
+        +discount_policy() DiscountPolicy
+        +sum_of(kind) Money
+        +subtotal() Money
+        +discount_amount() Money
+        +total() Money
+        +labor_hours() float
+        +mark_completed(moment)
+        +clear_completion()
+        +mark_paid(moment)
+        +release_all_parts()
+    }
+
+    Person <|-- Client
+    Person <|-- Employee
+    OrderLine <|-- WorkLine
+    OrderLine <|-- PartLine
+    DiscountPolicy <|-- NoDiscount
+    DiscountPolicy <|-- ManualDiscount
+    DiscountPolicy <|-- LoyaltyDiscount
+    DiscountPolicy <|-- BestOfDiscount
+    OrderState <|-- NewState
+    OrderState <|-- InProgressState
+    OrderState <|-- CompletedState
+    OrderState <|-- PaidState
+    OrderState <|-- CancelledState
+
+    Order *-- "0..*" OrderLine : керує рядками
+    Order o-- Car
+    Order o-- Employee : механік
+    Order --> OrderState : делегує правила статусу
+    Order ..> DiscountPolicy : створює
+    BestOfDiscount o-- "1..*" DiscountPolicy
+    Car o-- Client : власник
+    Employee o-- RepairCategory
+    WorkType o-- RepairCategory
+    Part o-- RepairCategory
+    WorkLine o-- WorkType
+    PartLine o-- Part
+    OrderLine ..> Money
+    OrderLine ..> LineKind
+    OrderStatus ..> OrderState
