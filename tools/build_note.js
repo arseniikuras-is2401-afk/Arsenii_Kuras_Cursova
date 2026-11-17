@@ -5,8 +5,8 @@
  *   npm install --prefix build/docgen docx
  *   node tools/build_note.js [кількість_сторінок]
  *
- * Таблиця перевірок береться з docs/04_testing.md, фрагменти коду — з
- * вихідних файлів, тож записка відповідає поточній версії програми.
+ * Фрагменти коду беруться з вихідних файлів, тож записка відповідає
+ * поточній версії програми.
  */
 
 const fs = require("fs");
@@ -330,20 +330,6 @@ function codeBlock(relative, signature, title, maxLines) {
 
 // ---- дані з інших файлів ----------------------------------------------------
 
-function testRows() {
-  const text = read("docs/04_testing.md");
-  return text.split("\n")
-    .filter((line) => /^\| \d+ \|/.test(line))
-    .map((line) => line.split("|").slice(1, -1).map((part) => part.trim()
-      .replace(/\*\*/g, "")));
-}
-
-function testSummary() {
-  const match = read("docs/04_testing.md").match(/Пройдено (\d+) з (\d+)/);
-  return match ? { passed: match[1], total: match[2] } :
-    { passed: "?", total: "?" };
-}
-
 function sourceFiles() {
   const order = ["main.py", "config.py", "models", "database", "services",
     "ui"];
@@ -375,8 +361,8 @@ module.exports = {
   TableOfContents, TextRun, FONT, MONO, SIZE, LINE, INDENT, MARGIN, PAGE_W,
   PAGE_H, TEXT_W, TEXT_W_LAND, OUT, PAGES, ROOT, counters, p, centered,
   blank, heading0, heading1, heading2, heading3, bullets, numbered, table,
-  figure, figureLabel, tableLabel, codeLines, codeBlock, read, testRows,
-  testSummary, sourceFiles, runs, cell,
+  figure, figureLabel, tableLabel, codeLines, codeBlock, read,
+  sourceFiles, runs, cell,
   setSection: (number) => { section = number; figureNo = 0; tableNo = 0; },
 };
 

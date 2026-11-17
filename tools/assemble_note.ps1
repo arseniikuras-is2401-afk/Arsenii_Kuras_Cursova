@@ -148,7 +148,7 @@ try {
         "обсяг даних з предметної області автосервіс: клієнти, автомобілі, механіки, прайс робіт, склад запчастин, замовлення-наряди."
     Replace-Text $doc "Соколюк Н.Р." "Курас А.В."
     Replace-Text $doc "5 Перелік графічного матеріалу" `
-        "5 Перелік графічного матеріалу: ER-діаграма бази даних, діаграми класів, діаграма станів замовлення, діаграма послідовності, схема навігації інтерфейсу."
+        "5 Перелік графічного матеріалу: ER-діаграма бази даних, діаграма класів, схема навігації інтерфейсу."
     Prepare-Template $doc
     $doc.Save(); $doc.Close()
 
@@ -157,13 +157,13 @@ try {
     $start = $paragraphs.Item(2).Range.Start
     $end = $paragraphs.Item($paragraphs.Count).Range.End - 1
     $text = @(
-        "Курсовий проєкт виконаний на: {PAGES} сторінках формату А4 з $($stats.figures) рисунками, $($stats.tables) таблицями, $($stats.appendices) додатками та $($stats.sources) посиланням на використані джерела.",
+        "Курсовий проєкт виконаний на: {PAGES} сторінках формату А4 з $($stats.figures) рисунками, $($stats.appendices) додатком та $($stats.sources) посиланнями на використані джерела.",
         "Тема роботи: Розробка програмного додатку для роботи з базою даних предметної області «Автосервіс».",
-        "Мета роботи – створити настільний застосунок для майстра-приймальника автосервісу, який автоматизує облік клієнтів і автомобілів, замовлень-нарядів на ремонт, виконаних робіт, запчастин на складі та механіків і показує підсумкові показники роботи сервісу.",
-        "У роботі проаналізовано предметну область і сформульовано функціональні вимоги. Спроєктовано базу даних SQLite з 10 пов'язаних таблиць і 7 представлень, побудовано ER-діаграму, діаграми класів, станів і послідовності. Застосунок реалізовано мовою Python з графічним інтерфейсом PyQt5 і графіками Matplotlib; код розділено на шари моделей, доступу до даних, сервісів та інтерфейсу.",
+        "Проєкт передбачає розробку програмного забезпечення для автоматизації обліку клієнтів і автомобілів, замовлень-нарядів на ремонт, виконаних робіт, запчастин на складі та механіків автосервісу. Основна мета – створити зручний інструмент для майстра-приймальника, який веде базу даних і показує підсумкові показники роботи сервісу.",
+        "У роботі здійснено аналіз предметної області, сформульовано вимоги до програмного забезпечення. Спроєктовано базу даних SQLite з 10 пов'язаних таблиць, побудовано ER-діаграму та діаграму класів. Систему реалізовано мовою Python, графічний інтерфейс – бібліотекою PyQt5, для стилізації використано QSS, для графіків – Matplotlib.",
         "Застосунок оформлює замовлення з перевіркою авто й механіка, списує запчастини зі складу в одній транзакції, веде статуси замовлення за патерном «Стан», рахує знижки, підтримує пошук, фільтрацію за кількома умовами, сортування за двома полями, імпорт накладної з CSV та експорт у CSV і JSON.",
-        "Працездатність підтверджено 113 модульними тестами pytest і 34 приймальними перевірками через інтерфейс, зокрема на некоректних і граничних даних, порожній базі та після повторного запуску.",
-        "Ключові слова: автосервіс, замовлення-наряд, склад запчастин, база даних, SQLite, Python, PyQt5, ООП, патерн «Стан», транзакція."
+        "Виконання програми з демонстраційними даними показало коректну роботу всіх основних функцій: некоректні дані не зберігаються, залишки на складі оновлюються при зміні замовлень, а дані зберігаються після повторного запуску.",
+        "Ключові слова: автосервіс, замовлення-наряд, клієнт, автомобіль, склад запчастин, база даних, SQLite, Python, PyQt5, QSS, інтерфейс."
     ) -join "`r"
     $doc.Range($start, $end).Text = $text
     $range = $doc.Range($start, $doc.Content.End)
@@ -188,10 +188,46 @@ try {
     Set-Margins $annotationSection 850 850 850 1417 $false
     $bodySection = Append-File $final (Join-Path $work "body.docx")
     Set-Margins $bodySection 850 850 850 1417 $false
+    # Список джерел — файл викладача без змін; лише заголовок потрапляє в зміст.
+    $literature = Join-Path $work "literature.docx"
+    Copy-Item (Join-Path $templates "література_ІС.docx") $literature -Force
+    $doc = $word.Documents.Open($literature)
+    Prepare-Template $doc
+    # Нумерацію списку перетворюємо на текст: інакше при вставленні вона
+    # зливається зі списками записки й номери джерел збиваються.
+    $doc.Content.ListFormat.ConvertNumbersToText()
+    # Оформлення абзаців запам'ятовуємо з оригіналу й накладаємо після
+    # вставлення: стиль «Звичайний» у записці інший, і без цього частина
+    # джерел вийшла б дрібним шрифтом з одинарним інтервалом.
+    $literatureFormats = @()
+    foreach ($paragraph in $doc.Paragraphs) {
+        $format = $paragraph.Format
+        $literatureFormats += @{ Rule = $format.LineSpacingRule;
+            Spacing = $format.LineSpacing; After = $format.SpaceAfter;
+            Before = $format.SpaceBefore; First = $format.FirstLineIndent;
+            Left = $format.LeftIndent; Align = $format.Alignment }
+    }
+    $doc.Paragraphs.Item(1).OutlineLevel = 1
+    $doc.Save(); $doc.Close()
+    $literatureSection = Append-File $final $literature
+    $count = [Math]::Min($literatureFormats.Count,
+        $literatureSection.Range.Paragraphs.Count)
+    for ($i = 1; $i -le $count; $i++) {
+        $paragraph = $literatureSection.Range.Paragraphs.Item($i)
+        $saved = $literatureFormats[$i - 1]
+        $paragraph.LineSpacingRule = $saved.Rule
+        if ($saved.Rule -ge 3) { $paragraph.LineSpacing = $saved.Spacing }
+        $paragraph.SpaceAfter = $saved.After
+        $paragraph.SpaceBefore = $saved.Before
+        $paragraph.LeftIndent = $saved.Left
+        $paragraph.FirstLineIndent = $saved.First
+        $paragraph.Alignment = $saved.Align
+    }
+    $literatureSection.Range.Font.Name = "Times New Roman"
+    $literatureSection.Range.Font.Size = 14
+    Set-Margins $literatureSection 850 850 850 1417 $false
     $appendices = @(
-        @{ File = "appendix_a.docx"; Letter = "А"; Landscape = $false },
-        @{ File = "appendix_b.docx"; Letter = "Б"; Landscape = $false },
-        @{ File = "appendix_c.docx"; Letter = "В"; Landscape = $true })
+        @{ File = "appendix_a.docx"; Letter = "А"; Landscape = $false })
     $appendixSections = @()
     foreach ($item in $appendices) {
         $section = Append-File $final (Join-Path $work $item.File)
@@ -204,7 +240,7 @@ try {
     # Титулка й завдання входять до нумерації, але номер на них не ставиться.
     Clear-Header $final.Sections.Item(1)
     Clear-Header $final.Sections.Item(2)
-    for ($i = 3; $i -le 4; $i++) {
+    for ($i = 3; $i -le 5; $i++) {
         $section = $final.Sections.Item($i)
         $section.PageSetup.DifferentFirstPageHeaderFooter = $false
         Write-Header $section $wdHeaderFooterPrimary ""
@@ -248,7 +284,7 @@ try {
     [void]$final.Bookmarks.Add("TocRange", $final.Range($bodyStart, $final.Content.End))
     foreach ($field in $final.Fields) {
         if ($field.Code.Text -match "TOC") {
-            $field.Code.Text = ' TOC \o "1-2" \h \z \b TocRange '
+            $field.Code.Text = ' TOC \o "1-2" \h \z \u \b TocRange '
         }
     }
     $final.TablesOfContents.Item(1).Update()
@@ -256,6 +292,7 @@ try {
     $pages = $final.ComputeStatistics($wdStatisticPages)
     Replace-Text $final "{PAGES}" "$pages"
     $final.TablesOfContents.Item(1).Update()
+    $final.TablesOfContents.Item(1).Range.Font.Bold = $false
     $final.Save()
     $final.SaveAs2($outPdf, $wdFormatPDF)
     $final.Close()
