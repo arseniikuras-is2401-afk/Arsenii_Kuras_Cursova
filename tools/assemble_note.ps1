@@ -1,4 +1,4 @@
-﻿# Збирає пояснювальну записку в один документ за допомогою Microsoft Word.
+# Збирає пояснювальну записку в один документ за допомогою Microsoft Word.
 #
 # Порядок частин (за вимогою викладача): титулка → завдання → анотація →
 # зміст → вступ → розділи 1–4 → висновки → список джерел → додатки.
@@ -12,7 +12,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $work = Join-Path $root "build\note"
 # Шаблони викладача лежать локально в build\templates (до репозиторію не входять).
 $templates = Join-Path $root "build\templates"
-$outDocx = Join-Path $root "docs\Пояснювальна_записка_Курас_Автосервіс.docx"
+$outDocx = Join-Path $root "docs\Курас_ПЗ.docx"
 $outPdf = [IO.Path]::ChangeExtension($outDocx, ".pdf")
 $stats = Get-Content (Join-Path $work "stats.json") -Raw | ConvertFrom-Json
 
