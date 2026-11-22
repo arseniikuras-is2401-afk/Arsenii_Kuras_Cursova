@@ -40,11 +40,11 @@ SQLite входить до Python (модуль `sqlite3`). Python 3.12+ пот�
 ## Встановлення
 
 ```bash
-git clone https://github.com/arseniikuras-is2401-afk/Cursova.git
+git clone https://github.com/arseniikuras-is2401-afk/Arsenii_Kuras_Cursova.git
 ```
 
 ```bash
-cd Cursova
+cd Arsenii_Kuras_Cursova
 ```
 
 ```bash
